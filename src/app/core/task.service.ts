@@ -1,15 +1,14 @@
-import { computed, Injectable, signal } from '@angular/core';
+import { computed, effect, Injectable, signal } from '@angular/core';
 import { Task } from '../models/task.model';
+
+const STORAGE_KEY = 'taskflow_tasks';
 
 @Injectable({
   providedIn: 'root',
 })
 export class TaskService {
   // Estado privado
-  private readonly _tasks = signal<Task[]>([
-    { id: 1, title: 'Aprender Angular', completed: false },
-    { id: 2, title: 'Entender Signals', completed: true },
-  ]);
+  private readonly _tasks = signal<Task[]>(this.loadFromStorage());
 
   // Estado público (solo lectura)
   readonly tasks = this._tasks.asReadonly();
@@ -20,9 +19,12 @@ export class TaskService {
 
   readonly completedTasks = computed(() => this._tasks().filter((task) => task.completed));
 
-  private taskExists(title: string): boolean {
-    const normalized = title.trim().toLowerCase();
-    return this._tasks().some((task) => task.title.trim().toLowerCase() === normalized);
+  constructor() {
+    // Persistencia reactiva automática
+    effect(() => {
+      const tasks = this._tasks();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    });
   }
 
   addTask(title: string) {
@@ -43,5 +45,19 @@ export class TaskService {
     this._tasks.update((tasks) =>
       tasks.map((task) => (task.id === id ? { ...task, completed: !task.completed } : task)),
     );
+  }
+
+  private loadFromStorage(): Task[] {
+    try {
+      const data = localStorage.getItem(STORAGE_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private taskExists(title: string): boolean {
+    const normalized = title.trim().toLowerCase();
+    return this._tasks().some((task) => task.title.trim().toLowerCase() === normalized);
   }
 }
