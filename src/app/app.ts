@@ -14,10 +14,10 @@ import { FormsModule } from '@angular/forms';
       <input
         type="text"
         placeholder="Nueva tarea..."
-        [value]="newTaskTitle"
-        (input)="onInput($event)"
+        [(ngModel)]="newTaskTitle"
+        (keydown.enter)="createTask()"
       />
-      <button (click)="addTask()">Agregar</button>
+      <button (click)="createTask()" [disabled]="!newTaskTitle.trim()">Agregar</button>
     </section>
 
     <p>Tareas completadas: {{ completedCount() }} / {{ totalCount() }}</p>
@@ -45,9 +45,22 @@ export class App {
 
   newTaskTitle = '';
 
-  addTask() {
-    if (!this.newTaskTitle.trim()) return;
+  // checkDuplicates() {
+  //   return this.tasks().some(
+  //     (task) => task.title.trim().toLowerCase() === this.newTaskTitle.trim().toLowerCase(),
+  //   );
+  // }
+  private taskExists(title: string): boolean {
+    const normalized = title.trim().toLowerCase();
+    return this.tasks().some((task) => task.title.trim().toLowerCase() === normalized);
+  }
 
+  createTask() {
+    const title = this.newTaskTitle.trim();
+    if (!title) return;
+    if (this.taskExists(title)) return;
+    // if (!this.newTaskTitle.trim()) return;
+    // if (this.checkDuplicates()) return;
     const newTask: Task = {
       id: Date.now(),
       title: this.newTaskTitle,
@@ -59,18 +72,9 @@ export class App {
     this.newTaskTitle = '';
   }
 
-  onInput(event: Event) {
-    const input = event.target as HTMLInputElement;
-    this.newTaskTitle = input.value;
-  }
+  // addTaskWhenEnter(event: KeyboardEvent) {
+  //   if (event.key === 'Enter') {
+  //     this.createTask();
+  //   }
+  // }
 }
-
-// @Component({
-//   selector: 'app-root',
-//   imports: [RouterOutlet],
-//   templateUrl: './app.html',
-//   styleUrl: './app.css'
-// })
-// export class App {
-//   protected readonly title = signal('taskflow');
-// }
