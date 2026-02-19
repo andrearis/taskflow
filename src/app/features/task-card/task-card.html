@@ -1,0 +1,5 @@
+<div style="border: 1px solid #ccc; padding: 10px; margin: 5px">
+  <h3>{{ task.title }}</h3>
+  <p>Estado: {{ task.completed ? '✅ Completada' : '⏳ Pendiente' }}</p>
+  <button (click)="onToggle()">Cambiar estado</button>
+</div>
