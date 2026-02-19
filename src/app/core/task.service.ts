@@ -1,16 +1,17 @@
 import { computed, effect, Injectable, signal } from '@angular/core';
 import { Task } from '../models/task.model';
 
-const STORAGE_KEY = 'taskflow_tasks';
-export type Filter = 'all' | 'completed' | 'pending';
+const STORAGE_KEY_TASKS = 'taskflow_tasks';
+const STORAGE_KEY_FILTER = 'taskflow_filter';
+type Filter = 'all' | 'completed' | 'pending';
 
 @Injectable({
   providedIn: 'root',
 })
 export class TaskService {
   // Estado privado
-  private readonly _tasks = signal<Task[]>(this.loadFromStorage());
-  private _filter = signal<Filter>('all');
+  private readonly _tasks = signal<Task[]>(this.loadTasksFromStorage());
+  private _filter = signal<Filter>(this.loadFilterFromStorage());
 
   // Estado público (solo lectura) -> exponemos el valor
   readonly tasks = this._tasks.asReadonly();
@@ -19,8 +20,6 @@ export class TaskService {
   readonly completedCount = computed(() => this._tasks().filter((task) => task.completed).length);
 
   readonly totalCount = computed(() => this._tasks().length);
-
-  readonly completedTasks = computed(() => this._tasks().filter((task) => task.completed));
 
   readonly filteredTasks = computed(() => {
     const filter = this._filter();
@@ -36,7 +35,12 @@ export class TaskService {
     // Persistencia reactiva automática
     effect(() => {
       const tasks = this._tasks();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks));
+    });
+    // Persistencia reactiva automática
+    effect(() => {
+      const filter = this._filter();
+      localStorage.setItem(STORAGE_KEY_FILTER, filter);
     });
   }
 
@@ -64,12 +68,24 @@ export class TaskService {
     this._filter.update(() => filter);
   }
 
-  private loadFromStorage(): Task[] {
+  private loadTasksFromStorage(): Task[] {
     try {
-      const data = localStorage.getItem(STORAGE_KEY);
+      const data = localStorage.getItem(STORAGE_KEY_TASKS);
       return data ? JSON.parse(data) : [];
     } catch {
       return [];
+    }
+  }
+
+  private loadFilterFromStorage(): Filter {
+    try {
+      const value = localStorage.getItem(STORAGE_KEY_FILTER);
+      if (value === 'all' || value === 'completed' || value === 'pending') {
+        return value;
+      }
+      return 'all';
+    } catch {
+      return 'all';
     }
   }
 
