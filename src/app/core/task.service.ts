@@ -58,6 +58,10 @@ export class TaskService {
     this._tasks.update((tasks) => [...tasks, newTask]);
   }
 
+  removeTask(id: number) {
+    this._tasks.update((tasks) => tasks.filter((task) => task.id !== id));
+  }
+
   toggleTask(id: number) {
     this._tasks.update((tasks) =>
       tasks.map((task) => (task.id === id ? { ...task, completed: !task.completed } : task)),
@@ -66,6 +70,9 @@ export class TaskService {
 
   setFilter(filter: Filter) {
     this._filter.update(() => filter);
+  }
+  clearCompleted() {
+    this._tasks.update((tasks) => tasks.filter((task) => !task.completed));
   }
 
   private loadTasksFromStorage(): Task[] {

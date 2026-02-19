@@ -8,11 +8,17 @@ import { Task } from '../../models/task.model';
   styleUrl: './task-card.css',
 })
 export class TaskCard {
-  @Input() task!: Task;
+  @Input({ required: true }) task!: Task;
 
   @Output() toggle = new EventEmitter<number>();
 
   onToggle() {
     this.toggle.emit(this.task.id);
+  }
+
+  @Output() remove = new EventEmitter<number>();
+
+  onRemove() {
+    this.remove.emit(this.task.id);
   }
 }

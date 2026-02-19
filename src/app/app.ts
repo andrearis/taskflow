@@ -21,15 +21,39 @@ import { TaskCard } from './features/task-card/task-card';
       <button (click)="createTask()" [disabled]="!newTaskTitle.trim()">Agregar</button>
     </section>
     <section>
-      <button (click)="taskService.setFilter('all')">All tasks</button>
-      <button (click)="taskService.setFilter('pending')">Pending tasks</button>
-      <button (click)="taskService.setFilter('completed')">Completed tasks</button>
+      <button (click)="taskService.setFilter('all')" [disabled]="taskService.filter() === 'all'">
+        All tasks
+      </button>
+      <button
+        (click)="taskService.setFilter('pending')"
+        [disabled]="taskService.filter() === 'pending'"
+      >
+        Pending tasks
+      </button>
+      <button
+        (click)="taskService.setFilter('completed')"
+        [disabled]="taskService.filter() === 'completed'"
+      >
+        Completed tasks
+      </button>
+    </section>
+    <section>
+      <button
+        (click)="taskService.clearCompleted()"
+        [disabled]="taskService.completedCount() === 0"
+      >
+        Clear completed tasks
+      </button>
     </section>
 
     <p>Tareas completadas: {{ taskService.completedCount() }} / {{ taskService.totalCount() }}</p>
 
     @for (task of taskService.filteredTasks(); track task.id) {
-      <app-task-card [task]="task" (toggle)="taskService.toggleTask($event)" />
+      <app-task-card
+        [task]="task"
+        (toggle)="taskService.toggleTask($event)"
+        (remove)="taskService.removeTask($event)"
+      />
     }
   `,
 })

@@ -2,4 +2,5 @@
   <h3>{{ task.title }}</h3>
   <p>Estado: {{ task.completed ? '✅ Completada' : '⏳ Pendiente' }}</p>
   <button (click)="onToggle()">Cambiar estado</button>
+  <button (click)="onRemove()">Eliminar tarea</button>
 </div>
