@@ -1,17 +1,15 @@
-import { computed, effect, Injectable, signal } from '@angular/core';
+import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { Task } from '../models/task.model';
-
-const STORAGE_KEY_TASKS = 'taskflow_tasks';
-const STORAGE_KEY_FILTER = 'taskflow_filter';
-type Filter = 'all' | 'completed' | 'pending';
+import { Filter, StorageService } from './storage.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class TaskService {
+  private storage = inject(StorageService);
   // Estado privado
-  private readonly _tasks = signal<Task[]>(this.loadTasksFromStorage());
-  private _filter = signal<Filter>(this.loadFilterFromStorage());
+  private readonly _tasks = signal<Task[]>(this.storage.loadTasksFromStorage());
+  private readonly _filter = signal<Filter>(this.storage.loadFilterFromStorage());
 
   // Estado público (solo lectura) -> exponemos el valor
   readonly tasks = this._tasks.asReadonly();
@@ -35,12 +33,12 @@ export class TaskService {
     // Persistencia reactiva automática
     effect(() => {
       const tasks = this._tasks();
-      localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks));
+      this.storage.saveTasks(tasks);
     });
     // Persistencia reactiva automática
     effect(() => {
       const filter = this._filter();
-      localStorage.setItem(STORAGE_KEY_FILTER, filter);
+      this.storage.saveFilter(filter);
     });
   }
 
@@ -73,27 +71,6 @@ export class TaskService {
   }
   clearCompleted() {
     this._tasks.update((tasks) => tasks.filter((task) => !task.completed));
-  }
-
-  private loadTasksFromStorage(): Task[] {
-    try {
-      const data = localStorage.getItem(STORAGE_KEY_TASKS);
-      return data ? JSON.parse(data) : [];
-    } catch {
-      return [];
-    }
-  }
-
-  private loadFilterFromStorage(): Filter {
-    try {
-      const value = localStorage.getItem(STORAGE_KEY_FILTER);
-      if (value === 'all' || value === 'completed' || value === 'pending') {
-        return value;
-      }
-      return 'all';
-    } catch {
-      return 'all';
-    }
   }
 
   private taskExists(title: string): boolean {

@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { TaskService } from './task.service';
 import { Task } from '../models/task.model';
+import { Filter, StorageService } from './storage.service';
+import { Mocked } from 'vitest';
 
 const taskMocked: Task = {
   id: 1,
@@ -10,56 +12,40 @@ const taskMocked: Task = {
 
 describe('TaskService', () => {
   let service: TaskService;
+  let mockStorageService: Mocked<StorageService>;
 
   beforeEach(() => {
     // Limpieza total antes de cada test
     vi.restoreAllMocks();
-    localStorage.clear();
 
-    // Configuramos el módulo (solo una vez por test)
+    mockStorageService = {
+      loadTasksFromStorage: vi.fn(),
+      loadFilterFromStorage: vi.fn(),
+      saveTasks: vi.fn(),
+      saveFilter: vi.fn(),
+    };
     TestBed.configureTestingModule({
-      providers: [TaskService],
+      providers: [TaskService, { provide: StorageService, useValue: mockStorageService }],
     });
-
-    // Espiamos el prototipo de Storage para capturar llamadas de setItem/getItem
-    vi.spyOn(Storage.prototype, 'setItem');
-    vi.spyOn(Storage.prototype, 'getItem');
   });
 
-  // Función auxiliar para inicializar el servicio después de configurar los mocks de localStorage
-  const setupService = () => {
+  // Función auxiliar para inicializar el servicio y los mocks
+  const setup = ({
+    tasks = [],
+    filter = 'all',
+  }: {
+    tasks?: Task[];
+    filter?: Filter;
+  } = {}) => {
+    mockStorageService.loadTasksFromStorage.mockReturnValue(tasks);
+    mockStorageService.loadFilterFromStorage.mockReturnValue(filter);
+
     service = TestBed.inject(TaskService);
   };
 
-  it('debe iniciar con array vacío si no hay datos en localStorage', () => {
-    vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
-    setupService();
-    expect(service.tasks()).toEqual([]);
-  });
-
-  it('debe cargar tareas desde localStorage al instanciarse', () => {
-    // IMPORTANTE: El mock debe estar ANTES de inyectar el servicio
-    vi.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => {
-      if (key === 'taskflow_tasks') return JSON.stringify([taskMocked, { ...taskMocked, id: 2 }]);
-      return null;
-    });
-
-    setupService();
-    expect(service.tasks().length).toBe(2);
-    expect(service.tasks()[0].title).toBe('Task 1');
-  });
-
-  it('debe manejar JSON corrupto en localStorage devolviendo un array vacío', () => {
-    vi.spyOn(Storage.prototype, 'getItem').mockReturnValue('esto-no-es-json');
-    setupService();
-
-    expect(service.tasks()).toEqual([]);
-  });
-
   describe('addTask()', () => {
     beforeEach(() => {
-      vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
-      setupService();
+      setup();
     });
     it('Añadir tarea ok', () => {
       const title = 'Nueva tarea';
@@ -81,8 +67,7 @@ describe('TaskService', () => {
     });
     it('debe persistir en localStorage automáticamente cuando se añade una tarea', () => {
       // 1. Configuramos el espía antes de crear el servicio
-      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
-      setupService();
+      setup();
 
       // 2. Ejecutamos la acción
       const nuevaTarea = 'Aprender Angular Signals';
@@ -91,20 +76,13 @@ describe('TaskService', () => {
       // 3. Forzamos la ejecución de efectos (necesario en tests de Angular 17+)
       TestBed.tick();
 
-      // 4. Verificamos que localStorage.setItem fue llamado con los datos correctos
-      expect(setItemSpy).toHaveBeenCalledWith(
-        'taskflow_tasks',
-        expect.stringContaining(nuevaTarea),
-      );
+      // 4. Verificamos que se llama a la persistencia de datos
+      expect(mockStorageService.saveTasks).toHaveBeenCalled();
     });
   });
   describe('toggleTask()', () => {
     beforeEach(() => {
-      vi.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => {
-        if (key === 'taskflow_tasks') return JSON.stringify([taskMocked, { ...taskMocked, id: 2 }]);
-        return null;
-      });
-      setupService();
+      setup({ tasks: [taskMocked, { ...taskMocked, id: 2 }] });
     });
     it('cambia el estado', () => {
       service.toggleTask(1);
@@ -117,11 +95,7 @@ describe('TaskService', () => {
   });
   describe('removeTask()', () => {
     beforeEach(() => {
-      vi.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => {
-        if (key === 'taskflow_tasks') return JSON.stringify([taskMocked, { ...taskMocked, id: 2 }]);
-        return null;
-      });
-      setupService();
+      setup({ tasks: [taskMocked, { ...taskMocked, id: 2 }] });
     });
     it('Elimina tarea y actualiza total', () => {
       expect(service.totalCount()).toBe(2);
@@ -132,11 +106,7 @@ describe('TaskService', () => {
 
   describe('clearCompleted()', () => {
     beforeEach(() => {
-      vi.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => {
-        if (key === 'taskflow_tasks') return JSON.stringify([taskMocked, { ...taskMocked, id: 2 }]);
-        return null;
-      });
-      setupService();
+      setup({ tasks: [taskMocked, { ...taskMocked, id: 2 }] });
     });
     it('Al estar todas en pending, no hace nada', () => {
       expect(service.totalCount()).toBe(2);
@@ -153,12 +123,7 @@ describe('TaskService', () => {
 
   describe('filteredTasks()', () => {
     beforeEach(() => {
-      vi.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => {
-        if (key === 'taskflow_tasks')
-          return JSON.stringify([taskMocked, { ...taskMocked, id: 2, completed: true }]);
-        return null;
-      });
-      setupService();
+      setup({ tasks: [taskMocked, { ...taskMocked, id: 2, completed: true }] });
     });
     it('Devuelve todas cuando filtro = all', () => {
       service.setFilter('all');
