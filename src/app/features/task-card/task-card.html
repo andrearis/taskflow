@@ -1,5 +1,17 @@
-<div style="border: 1px solid #ccc; padding: 10px; margin: 5px">
+<div style="border: 1px solid #ccc; padding: 10px; margin: 5px" (dblclick)="startEditing()">
   <h3>{{ task.title }}</h3>
+  @if (isEdditing) {
+    <input
+      type="text"
+      placeholder="Introduce el nuevo título"
+      [(ngModel)]="newTitle"
+      (keydown.enter)="onUpdate()"
+      (keydown.esc)="cancelUpdate()"
+    />
+  }
+  @if (errorMessage) {
+    <p style="color: red">{{ errorMessage }}</p>
+  }
   <p>Estado: {{ task.completed ? '✅ Completada' : '⏳ Pendiente' }}</p>
   <button (click)="onToggle()">Cambiar estado</button>
   <button (click)="onRemove()">Eliminar tarea</button>

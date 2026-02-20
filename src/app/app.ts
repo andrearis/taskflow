@@ -66,17 +66,28 @@ import { TaskCard } from './features/task-card/task-card';
         [task]="task"
         (toggle)="taskService.toggleTask($event)"
         (remove)="taskService.removeTask($event)"
+        (update)="updateTask($event)"
+        [errorMessage]="editErrors[task.id] ?? null"
       />
     }
   `,
 })
 export class App {
   newTaskTitle = '';
+  editErrors: Record<number, string | null> = {};
 
   constructor(public taskService: TaskService) {}
 
   createTask() {
     this.taskService.addTask(this.newTaskTitle);
     this.newTaskTitle = '';
+  }
+  updateTask(event: { id: number; title: string }) {
+    const result = this.taskService.updateTaskTitle(event.id, event.title);
+    if (!result.success) {
+      this.editErrors[event.id] = result.error ?? 'Error';
+    } else {
+      this.editErrors[event.id] = null;
+    }
   }
 }

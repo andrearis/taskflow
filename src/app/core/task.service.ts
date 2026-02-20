@@ -55,6 +55,20 @@ export class TaskService {
 
     this._tasks.update((tasks) => [...tasks, newTask]);
   }
+  updateTaskTitle(id: number, newTitle: string): { success: boolean; error?: string } {
+    const normalized = newTitle.trim();
+    if (!normalized) return { success: false, error: 'El título no puede estar vacío' };
+    if (this.taskExists(normalized, id))
+      return {
+        success: false,
+        error: 'Ya existe una tarea con ese título',
+      };
+
+    this._tasks.update((tasks) =>
+      tasks.map((task) => (task.id === id ? { ...task, title: normalized } : task)),
+    );
+    return { success: true };
+  }
 
   removeTask(id: number) {
     this._tasks.update((tasks) => tasks.filter((task) => task.id !== id));
@@ -73,8 +87,10 @@ export class TaskService {
     this._tasks.update((tasks) => tasks.filter((task) => !task.completed));
   }
 
-  private taskExists(title: string): boolean {
+  private taskExists(title: string, excludeId?: number): boolean {
     const normalized = title.trim().toLowerCase();
-    return this._tasks().some((task) => task.title.trim().toLowerCase() === normalized);
+    return this._tasks().some(
+      (task) => task.id !== excludeId && task.title.trim().toLowerCase() === normalized,
+    );
   }
 }
