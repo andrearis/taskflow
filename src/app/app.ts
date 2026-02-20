@@ -1,8 +1,9 @@
 import { Component, computed, signal } from '@angular/core';
 //import { RouterOutlet } from '@angular/router';
 import { Task } from './models/task.model';
-import { TaskCard } from './features/task-card/task-card';
 import { FormsModule } from '@angular/forms';
+import { TaskService } from './core/task.service';
+import { TaskCard } from './features/task-card/task-card';
 
 @Component({
   selector: 'app-root',
@@ -14,63 +15,79 @@ import { FormsModule } from '@angular/forms';
       <input
         type="text"
         placeholder="Nueva tarea..."
-        [value]="newTaskTitle"
-        (input)="onInput($event)"
+        [(ngModel)]="newTaskTitle"
+        (keydown.enter)="createTask()"
       />
-      <button (click)="addTask()">Agregar</button>
+      <button
+        data-testid="create-task-btn"
+        (click)="createTask()"
+        [disabled]="!newTaskTitle.trim()"
+      >
+        Agregar
+      </button>
+    </section>
+    <section>
+      <button
+        data-testid="show-all-task-btn"
+        (click)="taskService.setFilter('all')"
+        [disabled]="taskService.filter() === 'all'"
+      >
+        All tasks
+      </button>
+      <button
+        data-testid="show-pending-task-btn"
+        (click)="taskService.setFilter('pending')"
+        [disabled]="taskService.filter() === 'pending'"
+      >
+        Pending tasks
+      </button>
+      <button
+        data-testid="show-completed-task-btn"
+        (click)="taskService.setFilter('completed')"
+        [disabled]="taskService.filter() === 'completed'"
+      >
+        Completed tasks
+      </button>
+    </section>
+    <section>
+      <button
+        data-testid="clear-completed-task-btn"
+        (click)="taskService.clearCompleted()"
+        [disabled]="taskService.completedCount() === 0"
+      >
+        Clear completed tasks
+      </button>
     </section>
 
-    <p>Tareas completadas: {{ completedCount() }} / {{ totalCount() }}</p>
+    <p>Tareas completadas: {{ taskService.completedCount() }} / {{ taskService.totalCount() }}</p>
 
-    @for (task of tasks(); track task.id) {
-      <app-task-card [task]="task" (toggle)="toggleTask($event)" />
+    @for (task of taskService.filteredTasks(); track task.id) {
+      <app-task-card
+        [task]="task"
+        (toggle)="taskService.toggleTask($event)"
+        (remove)="taskService.removeTask($event)"
+        (update)="updateTask($event)"
+        [errorMessage]="editErrors[task.id] ?? null"
+      />
     }
   `,
 })
 export class App {
-  tasks = signal<Task[]>([
-    { id: 1, title: 'Aprender Angular', completed: false },
-    { id: 2, title: 'Entender Signals', completed: true },
-  ]);
-  toggleTask(id: number) {
-    this.tasks.update((tasks) =>
-      tasks.map((task) => (task.id === id ? { ...task, completed: !task.completed } : task)),
-    );
-  }
-  completedCount = computed(() => this.tasks().filter((task) => task.completed).length);
-
-  totalCount = computed(() => this.tasks().length);
-
-  completedTasks = computed(() => this.tasks().filter((task) => task.completed));
-
   newTaskTitle = '';
+  editErrors: Record<number, string | null> = {};
 
-  addTask() {
-    if (!this.newTaskTitle.trim()) return;
+  constructor(public taskService: TaskService) {}
 
-    const newTask: Task = {
-      id: Date.now(),
-      title: this.newTaskTitle,
-      completed: false,
-    };
-
-    this.tasks.update((tasks) => [...tasks, newTask]);
-
+  createTask() {
+    this.taskService.addTask(this.newTaskTitle);
     this.newTaskTitle = '';
   }
-
-  onInput(event: Event) {
-    const input = event.target as HTMLInputElement;
-    this.newTaskTitle = input.value;
+  updateTask(event: { id: number; title: string }) {
+    const result = this.taskService.updateTaskTitle(event.id, event.title);
+    if (!result.success) {
+      this.editErrors[event.id] = result.error ?? 'Error';
+    } else {
+      this.editErrors[event.id] = null;
+    }
   }
 }
-
-// @Component({
-//   selector: 'app-root',
-//   imports: [RouterOutlet],
-//   templateUrl: './app.html',
-//   styleUrl: './app.css'
-// })
-// export class App {
-//   protected readonly title = signal('taskflow');
-// }
