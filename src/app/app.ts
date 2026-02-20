@@ -18,19 +18,31 @@ import { TaskCard } from './features/task-card/task-card';
         [(ngModel)]="newTaskTitle"
         (keydown.enter)="createTask()"
       />
-      <button (click)="createTask()" [disabled]="!newTaskTitle.trim()">Agregar</button>
+      <button
+        data-testid="create-task-btn"
+        (click)="createTask()"
+        [disabled]="!newTaskTitle.trim()"
+      >
+        Agregar
+      </button>
     </section>
     <section>
-      <button (click)="taskService.setFilter('all')" [disabled]="taskService.filter() === 'all'">
+      <button
+        data-testid="show-all-task-btn"
+        (click)="taskService.setFilter('all')"
+        [disabled]="taskService.filter() === 'all'"
+      >
         All tasks
       </button>
       <button
+        data-testid="show-pending-task-btn"
         (click)="taskService.setFilter('pending')"
         [disabled]="taskService.filter() === 'pending'"
       >
         Pending tasks
       </button>
       <button
+        data-testid="show-completed-task-btn"
         (click)="taskService.setFilter('completed')"
         [disabled]="taskService.filter() === 'completed'"
       >
@@ -39,6 +51,7 @@ import { TaskCard } from './features/task-card/task-card';
     </section>
     <section>
       <button
+        data-testid="clear-completed-task-btn"
         (click)="taskService.clearCompleted()"
         [disabled]="taskService.completedCount() === 0"
       >
